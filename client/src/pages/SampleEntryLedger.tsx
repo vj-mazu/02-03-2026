@@ -5,7 +5,7 @@ import type { SampleEntryWithDetails, SampleEntryFilters } from '../types/sample
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import { API_URL } from '../config/api';
 
 interface Broker {
   id: number;

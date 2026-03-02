@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import { API_URL } from '../config/api';
 
 interface SampleEntry {
     id: string;
@@ -372,8 +372,8 @@ const LoadingLots: React.FC = () => {
 
                 // Admin-set values to display as read-only context
                 const adminValues = [
-                    { label: 'Base Rate Type', value: (o.baseRateType || o.offerBaseRateType || '-').replace(/_/g, '/') },
-                    { label: 'Base Rate', value: (o.finalBaseRate || o.offerBaseRateValue) ? (o.finalBaseRate || o.offerBaseRateValue) : '-' },
+                    { label: 'Final Rate Type', value: (o.baseRateType || o.offerBaseRateType || '-').replace(/_/g, '/') },
+                    { label: 'Final Rate', value: (o.finalBaseRate || o.offerBaseRateValue) ? (o.finalBaseRate || o.offerBaseRateValue) : '-' },
                     { label: 'EGB', value: (o.egbValue != null && o.egbValue !== 0) ? o.egbValue : '-' },
                     { label: 'Custom Divisor', value: o.customDivisor ? o.customDivisor : '-' },
                 ];
@@ -435,13 +435,13 @@ const LoadingLots: React.FC = () => {
                                 {/* Row 0: Final Base Rate */}
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
                                     <div>
-                                        <label style={{ fontSize: '11px', fontWeight: '700', color: '#333', display: 'block', marginBottom: '3px' }}>Final Base Rate</label>
+                                        <label style={{ fontSize: '11px', fontWeight: '700', color: '#333', display: 'block', marginBottom: '3px' }}>Final Rate</label>
                                         <input type="number" step="0.01" value={managerData.finalBaseRate}
                                             onChange={e => setManagerData({ ...managerData, finalBaseRate: e.target.value })}
                                             style={{ width: '100%', padding: '5px 8px', border: '1px solid #3498db', borderRadius: '4px', fontSize: '12px', boxSizing: 'border-box' }} placeholder="Rate" />
                                     </div>
                                     <div>
-                                        <label style={{ fontSize: '11px', fontWeight: '700', color: '#333', display: 'block', marginBottom: '3px' }}>Base Rate Type</label>
+                                        <label style={{ fontSize: '11px', fontWeight: '700', color: '#333', display: 'block', marginBottom: '3px' }}>Final Rate Type</label>
                                         <select value={managerData.baseRateType} onChange={e => setManagerData({ ...managerData, baseRateType: e.target.value })}
                                             style={{ width: '100%', padding: '5px 8px', border: '1px solid #3498db', borderRadius: '4px', fontSize: '12px', boxSizing: 'border-box' }}>
                                             <option value="PD_LOOSE">PD/Loose</option>

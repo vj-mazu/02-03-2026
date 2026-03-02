@@ -9,14 +9,14 @@ module.exports = {
   database: {
     // Connection Pool Settings
     pool: {
-      max: 50,           // Maximum connections
-      min: 10,           // Minimum connections
-      acquire: 60000,     // 60s acquire timeout
+      max: 20,           // Supabase-safe maximum
+      min: 5,            // Minimum connections
+      acquire: 30000,     // 30s acquire timeout
       idle: 10000,       // 10s idle timeout
       evict: 1000,       // 1s eviction interval
-      maxUses: 2000       // Max uses per connection
+      maxUses: 5000       // Max uses per connection
     },
-    
+
     // Query Timeouts (in milliseconds)
     timeouts: {
       statement: 30000,  // 30s database timeout
@@ -33,7 +33,7 @@ module.exports = {
       defaultTTL: 300,   // 5 minutes
       enable: true
     },
-    
+
     // Redis settings (optional)
     redis: {
       enable: !!process.env.REDIS_URL,
@@ -48,16 +48,16 @@ module.exports = {
     // Pagination limits
     pagination: {
       default: 50,
-      max: 10000,
+      max: 500,       // Cap at 500 to prevent massive payloads
       recommended: 250
     },
-    
+
     // Rate limiting
     rateLimit: {
       windowMs: 15 * 60 * 1000,  // 15 minutes
-      max: 10000                    // 10,000 requests
+      max: 1000                    // 1000 requests per 15 min
     },
-    
+
     // Timeout settings
     timeout: 30000  // 30s request timeout
   },
@@ -66,13 +66,13 @@ module.exports = {
   query: {
     // Enable query result caching
     cacheEnabled: true,
-    
+
     // Slow query threshold (ms)
     slowQueryThreshold: 1000,
-    
+
     // Enable query result transformation
     transform: true,
-    
+
     // Maximum join depth
     maxJoinDepth: 3
   },
@@ -88,16 +88,16 @@ module.exports = {
   monitoring: {
     // Enable performance tracking
     enabled: true,
-    
+
     // Log slow queries
     logSlowQueries: true,
-    
+
     // Slow query threshold
     slowQueryMs: 1000,
-    
+
     // Track cache hit rate
     trackCacheHitRate: true,
-    
+
     // Performance metrics retention (hours)
     metricsRetention: 24
   },

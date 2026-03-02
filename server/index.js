@@ -106,7 +106,7 @@ app.use(cors({
 // Rate limiting - General API protection
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'development' ? 5000 : 200, // Strict in production
+  max: process.env.NODE_ENV === 'development' ? 5000 : 1000, // 1000 in production (SPA needs ~5-10 calls per page load)
   message: { error: 'Too many requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false
@@ -197,8 +197,10 @@ app.get('/api/admin/seed-render', auth, authorize('admin'), (req, res) => {
   });
 });
 
-// Health check
-app.get('/api/health', async (req, res) => {
+// Health check (cached 30s to avoid DB pings every request)
+const { cacheMiddleware, getCacheStats } = require('./middleware/cache');
+
+app.get('/api/health', cacheMiddleware(30), async (req, res) => {
   try {
     // Test database connection
     await sequelize.authenticate();
@@ -210,7 +212,8 @@ app.get('/api/health', async (req, res) => {
       status: 'OK',
       message: 'Mother India Stock Management Server is running',
       database: 'Connected',
-      tables: tables.length
+      tables: tables.length,
+      cache: getCacheStats()
     });
   } catch (error) {
     res.status(500).json({
@@ -219,6 +222,11 @@ app.get('/api/health', async (req, res) => {
       error: error.message
     });
   }
+});
+
+// Cache stats endpoint (admin only)
+app.get('/api/cache-stats', auth, authorize('admin'), (req, res) => {
+  res.json(getCacheStats());
 });
 
 // Error handling middleware
@@ -1373,6 +1381,15 @@ const startServer = async () => {
         console.log('✅ Migration 98: Manager Fallback Toggles added');
       } catch (error) {
         console.log('⚠️ Migration 98 warning:', error.message);
+      }
+
+      // Migration 60: Sample Workflow Performance Indexes (runs after all schema migrations)
+      try {
+        const addSampleWorkflowIndexes = require('./migrations/60_add_sample_workflow_indexes');
+        await addSampleWorkflowIndexes.up();
+        console.log('✅ Migration 60: Sample workflow performance indexes added');
+      } catch (error) {
+        console.log('⚠️ Migration 60 warning:', error.message);
       }
 
       console.log('✅ All migrations + indexes completed.');

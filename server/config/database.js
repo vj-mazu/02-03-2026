@@ -34,19 +34,17 @@ const sequelize = dbUrl
       application_name: 'mother_india_stock_mgmt'
     },
     pool: {
-      max: 50,  // Increased for 10 lakh records handling
-      min: 10,  // Higher minimum for faster response under load
-      acquire: 60000,
+      max: 20,  // Supabase Pro allows ~60 connections, keep headroom
+      min: 5,   // Keep 5 warm connections
+      acquire: 30000,
       idle: 10000,
       evict: 1000,
-      maxUses: 2000  // Increased for high-volume operations
+      maxUses: 5000
     },
     define: {
       timestamps: true,
       underscored: false,
-      freezeTableName: true,
-      charset: 'utf8mb4',
-      collate: 'utf8mb4_unicode_ci'
+      freezeTableName: true
     }
   })
   : new Sequelize({
@@ -59,9 +57,9 @@ const sequelize = dbUrl
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     minifyAliases: true,
 
-    // Connection pool — tuned for 30 lakh records
+    // Connection pool — tuned for PostgreSQL
     pool: {
-      max: 20,   // 20 is optimal for PostgreSQL (CPU cores * 2 + spindle count)
+      max: 15,   // Optimal for PostgreSQL (CPU cores * 2 + spindle count)
       min: 5,    // Keep 5 warm connections
       acquire: 30000,
       idle: 10000,
@@ -71,8 +69,8 @@ const sequelize = dbUrl
 
     // Query optimization settings
     dialectOptions: {
-      statement_timeout: 30000,           // Database-level timeout (30s)
-      query_timeout: 25000,               // Sequelize-level timeout (25s) - fires before DB timeout
+      statement_timeout: 30000,
+      query_timeout: 25000,
       idle_in_transaction_session_timeout: 60000,
       application_name: 'mother_india_stock_mgmt'
     },
@@ -81,9 +79,7 @@ const sequelize = dbUrl
     define: {
       timestamps: true,
       underscored: false,
-      freezeTableName: true,
-      charset: 'utf8mb4',
-      collate: 'utf8mb4_unicode_ci'
+      freezeTableName: true
     },
 
     // Performance settings — log slow queries (>500ms)

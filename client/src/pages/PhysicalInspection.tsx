@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import { API_URL } from '../config/api';
 
 interface SampleEntry {
   id: string;
@@ -186,9 +186,10 @@ const PhysicalInspection: React.FC = () => {
     const cutting1 = parseFloat(cuttingParts[0]?.trim()) || 0;
     const cutting2 = cuttingParts.length > 1 ? (parseFloat(cuttingParts[1]?.trim()) || 0) : 0;
 
-    // Parse bend: e.g. "32x24" → bend value = 32 (or full string)
+    // Parse bend: e.g. "12x15" → bend1 = 12, bend2 = 15
     const bendParts = data.bend.split(/[xX×]/);
-    const bendValue = parseFloat(bendParts[0]?.trim()) || 0;
+    const bend1 = parseFloat(bendParts[0]?.trim()) || 0;
+    const bend2 = bendParts.length > 1 ? (parseFloat(bendParts[1]?.trim()) || 0) : 0;
 
     // Validate bags don't exceed remaining
     if (progress && data.actualBags > progress.remainingBags) {
@@ -212,7 +213,9 @@ const PhysicalInspection: React.FC = () => {
       formData.append('actualBags', data.actualBags.toString());
       formData.append('cutting1', cutting1.toString());
       formData.append('cutting2', cutting2.toString());
-      formData.append('bend', bendValue.toString());
+      formData.append('bend', data.bend);
+      formData.append('bend1', bend1.toString());
+      formData.append('bend2', bend2.toString());
       if (data.remarks) formData.append('remarks', data.remarks);
 
       // Add images if selected

@@ -18,8 +18,8 @@ const User = sequelize.define('User', {
   },
   role: {
     type: DataTypes.ENUM(
-      'staff', 
-      'manager', 
+      'staff',
+      'manager',
       'admin',
       'quality_supervisor',
       'physical_supervisor',
@@ -31,6 +31,12 @@ const User = sequelize.define('User', {
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  staffType: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    defaultValue: null,
+    comment: 'mill or location - only for staff role'
   }
 }, {
   tableName: 'users',

@@ -16,11 +16,11 @@ router.post('/login', async (req, res) => {
     }
 
     // Find user
-    const user = await User.findOne({ 
-      where: { 
+    const user = await User.findOne({
+      where: {
         username: username.toLowerCase(),
-        isActive: true 
-      } 
+        isActive: true
+      }
     });
 
     if (!user) {
@@ -35,10 +35,10 @@ router.post('/login', async (req, res) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      { 
-        userId: user.id, 
-        username: user.username, 
-        role: user.role 
+      {
+        userId: user.id,
+        username: user.username,
+        role: user.role
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN }
@@ -50,7 +50,8 @@ router.post('/login', async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        role: user.role
+        role: user.role,
+        staffType: user.staffType
       }
     });
   } catch (error) {
@@ -63,7 +64,7 @@ router.post('/login', async (req, res) => {
 router.get('/me', auth, async (req, res) => {
   try {
     const user = await User.findByPk(req.user.userId, {
-      attributes: ['id', 'username', 'role', 'isActive']
+      attributes: ['id', 'username', 'role', 'isActive', 'staffType']
     });
 
     if (!user) {

@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import { API_URL } from '../config/api';
+const API_BASE_URL = API_URL;
 
 // Configure axios defaults
 axios.defaults.baseURL = API_BASE_URL;
@@ -10,6 +11,7 @@ interface User {
   id: number;
   username: string;
   role: 'owner' | 'staff' | 'manager' | 'admin' | 'quality_supervisor' | 'physical_supervisor' | 'inventory_staff' | 'financial_account';
+  staffType?: 'mill' | 'location' | null;
 }
 
 interface AuthContextType {

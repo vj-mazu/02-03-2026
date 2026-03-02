@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import { API_URL } from '../config/api';
 
 interface SampleEntry {
   id: string;
@@ -247,7 +247,7 @@ const FinalReport: React.FC = () => {
         setOfferData({
           offerRate: d.offerRate?.toString() || '',
           sute: d.sute?.toString() || '',
-          suteUnit: d.suteUnit || 'per_kg',
+          suteUnit: d.suteUnit || 'per_bag',
           baseRateType: d.baseRateType || 'PD_LOOSE',
           baseRateUnit: d.baseRateUnit || 'per_bag',
           offerBaseRateValue: d.offerBaseRateValue?.toString() || '',
@@ -280,7 +280,7 @@ const FinalReport: React.FC = () => {
     setOfferData({
       offerRate: entry.offeringPrice?.toString() || '',
       sute: '',
-      suteUnit: entry.suit || 'per_kg',
+      suteUnit: entry.suit || 'per_bag',
       baseRateType: entry.offerBaseRate || 'PD_LOOSE',
       baseRateUnit: entry.perUnit || 'per_bag',
       offerBaseRateValue: '',

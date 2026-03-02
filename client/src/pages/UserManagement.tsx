@@ -292,6 +292,7 @@ const EditModal: React.FC<EditModalProps> = ({ user, mode, onClose, onSave }) =>
     const [username, setUsername] = useState(user?.username || '');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState<string>(user?.role || 'staff');
+    const [staffType, setStaffType] = useState<'mill' | 'location'>('mill');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -310,7 +311,8 @@ const EditModal: React.FC<EditModalProps> = ({ user, mode, onClose, onSave }) =>
                 await axios.post('/admin/users', {
                     username,
                     password,
-                    role
+                    role,
+                    ...(role === 'staff' ? { staffType } : {})
                 });
                 toast.success('User created successfully');
             } else {
@@ -395,6 +397,41 @@ const EditModal: React.FC<EditModalProps> = ({ user, mode, onClose, onSave }) =>
                                 <option value="inventory_staff">Inventory Staff</option>
                                 <option value="financial_account">Financial Account</option>
                             </Select>
+                        </FormGroup>
+                    )}
+
+                    {mode === 'create' && role === 'staff' && (
+                        <FormGroup>
+                            <Label>Staff Type *</Label>
+                            <div style={{ display: 'flex', gap: '20px', padding: '8px 0' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: staffType === 'mill' ? '700' : '400', color: staffType === 'mill' ? '#2563eb' : '#374151' }}>
+                                    <input
+                                        type="radio"
+                                        name="staffType"
+                                        value="mill"
+                                        checked={staffType === 'mill'}
+                                        onChange={() => setStaffType('mill')}
+                                        style={{ accentColor: '#2563eb' }}
+                                    />
+                                    🏭 Mill
+                                </label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: staffType === 'location' ? '700' : '400', color: staffType === 'location' ? '#e65100' : '#374151' }}>
+                                    <input
+                                        type="radio"
+                                        name="staffType"
+                                        value="location"
+                                        checked={staffType === 'location'}
+                                        onChange={() => setStaffType('location')}
+                                        style={{ accentColor: '#e65100' }}
+                                    />
+                                    📍 Location
+                                </label>
+                            </div>
+                            <HelpText>
+                                {staffType === 'mill'
+                                    ? 'Mill staff can access: Mill Sample + Sample Book'
+                                    : 'Location staff can access: Location Sample + Sample Book'}
+                            </HelpText>
                         </FormGroup>
                     )}
 

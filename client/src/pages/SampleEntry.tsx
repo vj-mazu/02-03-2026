@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import { API_URL } from '../config/api';
 
 const SampleEntryPage: React.FC = () => {
   const { user } = useAuth();
@@ -83,8 +83,14 @@ const SampleEntryPage: React.FC = () => {
 
   // Auto-insert × symbol for cutting/bend after 2+ digits
   const handleCuttingInput = (value: string) => {
-    // Allow digits, decimals and × for format like 1.20×1.30
-    const clean = value.replace(/[^0-9.×x]/g, '').replace(/[xX]/g, '×');
+    // Allow digits, decimals and × for format like 2×21 — only ONE × allowed
+    let clean = value.replace(/[^0-9.×x]/g, '').replace(/[xX]/g, '×');
+    // Only allow one × symbol
+    const xCount = (clean.match(/×/g) || []).length;
+    if (xCount > 1) {
+      const idx = clean.indexOf('×');
+      clean = clean.substring(0, idx + 1) + clean.substring(idx + 1).replace(/×/g, '');
+    }
     setQualityData(prev => {
       const parts = clean.split('×');
       const first = parts[0] || '';
@@ -94,14 +100,30 @@ const SampleEntryPage: React.FC = () => {
   };
 
   const handleBendInput = (value: string) => {
-    // Allow digits, decimals and × for format like 1.20×1.30
-    const clean = value.replace(/[^0-9.×x]/g, '').replace(/[xX]/g, '×');
+    // Allow digits, decimals and × for format like 12×15 — only ONE × allowed
+    let clean = value.replace(/[^0-9.×x]/g, '').replace(/[xX]/g, '×');
+    // Only allow one × symbol
+    const xCount = (clean.match(/×/g) || []).length;
+    if (xCount > 1) {
+      const idx = clean.indexOf('×');
+      clean = clean.substring(0, idx + 1) + clean.substring(idx + 1).replace(/×/g, '');
+    }
     setQualityData(prev => {
       const parts = clean.split('×');
       const first = parts[0] || '';
       const second = parts[1] || '';
       return { ...prev, bend: clean, bend1: first, bend2: second };
     });
+  };
+
+  // Helper: restrict quality param value to max 3 digits before decimal
+  const handleQualityInput = (field: string, value: string) => {
+    // Remove non-numeric except decimal
+    const cleaned = value.replace(/[^0-9.]/g, '');
+    // Check integer part is max 3 digits
+    const parts = cleaned.split('.');
+    if (parts[0] && parts[0].length > 3) return; // block if > 3 digits before decimal
+    setQualityData(prev => ({ ...prev, [field]: cleaned }));
   };
 
   useEffect(() => {
@@ -441,69 +463,78 @@ const SampleEntryPage: React.FC = () => {
       }}>
         <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '800', background: 'linear-gradient(135deg, #2e7d32, #43a047)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '1px' }}>🌾 NEW PADDY SAMPLE</h2>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => {
-              setEntryType('CREATE_NEW');
-              setFormData({ entryDate: new Date().toISOString().split('T')[0], brokerName: '', variety: '', partyName: '', location: '', bags: '', lorryNumber: '', packaging: '75', sampleCollectedBy: '', sampleGivenToOffice: false });
-              setEditingEntry(null);
-              setShowModal(true);
-            }}
-            style={{
-              padding: '8px 16px',
-              cursor: 'pointer',
-              backgroundColor: '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '13px',
-              fontWeight: '600',
-              boxShadow: '0 2px 4px rgba(76,175,80,0.3)'
-            }}
-          >
-            + Mill Sample
-          </button>
-          <button
-            onClick={() => {
-              setEntryType('DIRECT_LOADED_VEHICLE');
-              setFormData({ entryDate: new Date().toISOString().split('T')[0], brokerName: '', variety: '', partyName: '', location: '', bags: '', lorryNumber: '', packaging: '75', sampleCollectedBy: '', sampleGivenToOffice: false });
-              setEditingEntry(null);
-              setShowModal(true);
-            }}
-            style={{
-              padding: '8px 16px',
-              cursor: 'pointer',
-              backgroundColor: '#2196F3',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '13px',
-              fontWeight: '600',
-              boxShadow: '0 2px 4px rgba(33,150,243,0.3)'
-            }}
-          >
-            + Ready Lorry
-          </button>
-          <button
-            onClick={() => {
-              setEntryType('LOCATION_SAMPLE');
-              setFormData({ entryDate: new Date().toISOString().split('T')[0], brokerName: '', variety: '', partyName: '', location: '', bags: '', lorryNumber: '', packaging: '75', sampleCollectedBy: user?.username || '', sampleGivenToOffice: false });
-              setEditingEntry(null);
-              setShowModal(true);
-            }}
-            style={{
-              padding: '8px 16px',
-              cursor: 'pointer',
-              backgroundColor: '#FF9800',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '13px',
-              fontWeight: '600',
-              boxShadow: '0 2px 4px rgba(255,152,0,0.3)'
-            }}
-          >
-            + Location Sample
-          </button>
+          {/* Mill Sample button - hidden for location staff */}
+          {(user?.role !== 'staff' || user?.staffType !== 'location') && (
+            <button
+              onClick={() => {
+                setEntryType('CREATE_NEW');
+                setFormData({ entryDate: new Date().toISOString().split('T')[0], brokerName: '', variety: '', partyName: '', location: '', bags: '', lorryNumber: '', packaging: '75', sampleCollectedBy: '', sampleGivenToOffice: false });
+                setEditingEntry(null);
+                setShowModal(true);
+              }}
+              style={{
+                padding: '8px 16px',
+                cursor: 'pointer',
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: '600',
+                boxShadow: '0 2px 4px rgba(76,175,80,0.3)'
+              }}
+            >
+              + New Mill Sample
+            </button>
+          )}
+          {/* Ready Lorry button - hidden for location staff */}
+          {(user?.role !== 'staff' || user?.staffType !== 'location') && (
+            <button
+              onClick={() => {
+                setEntryType('DIRECT_LOADED_VEHICLE');
+                setFormData({ entryDate: new Date().toISOString().split('T')[0], brokerName: '', variety: '', partyName: '', location: '', bags: '', lorryNumber: '', packaging: '75', sampleCollectedBy: '', sampleGivenToOffice: false });
+                setEditingEntry(null);
+                setShowModal(true);
+              }}
+              style={{
+                padding: '8px 16px',
+                cursor: 'pointer',
+                backgroundColor: '#2196F3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: '600',
+                boxShadow: '0 2px 4px rgba(33,150,243,0.3)'
+              }}
+            >
+              + Ready Lorry
+            </button>
+          )}
+          {/* Location Sample button - hidden for mill staff */}
+          {(user?.role !== 'staff' || user?.staffType !== 'mill') && (
+            <button
+              onClick={() => {
+                setEntryType('LOCATION_SAMPLE');
+                setFormData({ entryDate: new Date().toISOString().split('T')[0], brokerName: '', variety: '', partyName: '', location: '', bags: '', lorryNumber: '', packaging: '75', sampleCollectedBy: user?.username || '', sampleGivenToOffice: false });
+                setEditingEntry(null);
+                setShowModal(true);
+              }}
+              style={{
+                padding: '8px 16px',
+                cursor: 'pointer',
+                backgroundColor: '#FF9800',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: '600',
+                boxShadow: '0 2px 4px rgba(255,152,0,0.3)'
+              }}
+            >
+              + Location Sample
+            </button>
+          )}
         </div>
       </div>
 
@@ -514,26 +545,34 @@ const SampleEntryPage: React.FC = () => {
         marginBottom: '15px',
         borderBottom: '2px solid #e0e0e0'
       }}>
-        {(['MILL_SAMPLE', 'LOCATION_SAMPLE', 'SAMPLE_BOOK'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              padding: '10px 20px',
-              border: 'none',
-              borderBottom: activeTab === tab ? '3px solid #4a90e2' : '3px solid transparent',
-              backgroundColor: activeTab === tab ? '#fff' : 'transparent',
-              color: activeTab === tab ? '#4a90e2' : '#666',
-              fontWeight: activeTab === tab ? '700' : '500',
-              fontSize: '13px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              marginBottom: '-2px'
-            }}
-          >
-            {tab === 'MILL_SAMPLE' ? 'MILL SAMPLE' : tab === 'LOCATION_SAMPLE' ? 'LOCATION SAMPLE' : 'SAMPLE BOOK'}
-          </button>
-        ))}
+        {(['MILL_SAMPLE', 'LOCATION_SAMPLE', 'SAMPLE_BOOK'] as const)
+          .filter((tab) => {
+            const staffType = (user as any)?.staffType;
+            if (user?.role !== 'staff' || !staffType) return true; // non-staff see all
+            if (staffType === 'mill') return tab === 'MILL_SAMPLE' || tab === 'SAMPLE_BOOK';
+            if (staffType === 'location') return tab === 'LOCATION_SAMPLE' || tab === 'SAMPLE_BOOK';
+            return true;
+          })
+          .map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                padding: '10px 20px',
+                border: 'none',
+                borderBottom: activeTab === tab ? '3px solid #4a90e2' : '3px solid transparent',
+                backgroundColor: activeTab === tab ? '#fff' : 'transparent',
+                color: activeTab === tab ? '#4a90e2' : '#666',
+                fontWeight: activeTab === tab ? '700' : '500',
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                marginBottom: '-2px'
+              }}
+            >
+              {tab === 'MILL_SAMPLE' ? 'MILL SAMPLE' : tab === 'LOCATION_SAMPLE' ? 'LOCATION SAMPLE' : 'SAMPLE BOOK'}
+            </button>
+          ))}
       </div>
 
       {/* Collapsible Filter Bar */}
@@ -1113,7 +1152,7 @@ const SampleEntryPage: React.FC = () => {
                     step="0.01"
                     required
                     value={qualityData.moisture}
-                    onChange={(e) => setQualityData({ ...qualityData, moisture: e.target.value })}
+                    onChange={(e) => handleQualityInput('moisture', e.target.value)}
                     style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '12px' }}
                   />
                 </div>
@@ -1151,7 +1190,7 @@ const SampleEntryPage: React.FC = () => {
                 <div>
                   <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', color: '#555', fontSize: '12px' }}>Mix *</label>
                   <input type="number" step="0.01" required
-                    value={qualityData.mix} onChange={(e) => setQualityData({ ...qualityData, mix: e.target.value })}
+                    value={qualityData.mix} onChange={(e) => handleQualityInput('mix', e.target.value)}
                     style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '12px' }} />
                 </div>
 
@@ -1168,7 +1207,7 @@ const SampleEntryPage: React.FC = () => {
                   </div>
                   {smixEnabled && (
                     <input type="number" step="0.01" value={qualityData.mixS}
-                      onChange={(e) => setQualityData({ ...qualityData, mixS: e.target.value })}
+                      onChange={(e) => handleQualityInput('mixS', e.target.value)}
                       style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '12px' }} />
                   )}
                 </div>
@@ -1186,7 +1225,7 @@ const SampleEntryPage: React.FC = () => {
                   </div>
                   {lmixEnabled && (
                     <input type="number" step="0.01" value={qualityData.mixL}
-                      onChange={(e) => setQualityData({ ...qualityData, mixL: e.target.value })}
+                      onChange={(e) => handleQualityInput('mixL', e.target.value)}
                       style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '12px' }} />
                   )}
                 </div>
@@ -1195,7 +1234,7 @@ const SampleEntryPage: React.FC = () => {
                 <div>
                   <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', color: '#555', fontSize: '12px' }}>Kandu *</label>
                   <input type="number" step="0.01" required
-                    value={qualityData.kandu} onChange={(e) => setQualityData({ ...qualityData, kandu: e.target.value })}
+                    value={qualityData.kandu} onChange={(e) => handleQualityInput('kandu', e.target.value)}
                     style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '12px' }} />
                 </div>
 
@@ -1203,7 +1242,7 @@ const SampleEntryPage: React.FC = () => {
                 <div>
                   <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', color: '#555', fontSize: '12px' }}>Oil *</label>
                   <input type="number" step="0.01" required
-                    value={qualityData.oil} onChange={(e) => setQualityData({ ...qualityData, oil: e.target.value })}
+                    value={qualityData.oil} onChange={(e) => handleQualityInput('oil', e.target.value)}
                     style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '12px' }} />
                 </div>
 
@@ -1211,7 +1250,7 @@ const SampleEntryPage: React.FC = () => {
                 <div>
                   <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', color: '#555', fontSize: '12px' }}>SK *</label>
                   <input type="number" step="0.01" required
-                    value={qualityData.sk} onChange={(e) => setQualityData({ ...qualityData, sk: e.target.value })}
+                    value={qualityData.sk} onChange={(e) => handleQualityInput('sk', e.target.value)}
                     style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '12px' }} />
                 </div>
 
@@ -1219,7 +1258,7 @@ const SampleEntryPage: React.FC = () => {
                 <div>
                   <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', color: '#555', fontSize: '12px' }}>Grains Count *</label>
                   <input type="number" required
-                    value={qualityData.grainsCount} onChange={(e) => setQualityData({ ...qualityData, grainsCount: e.target.value })}
+                    value={qualityData.grainsCount} onChange={(e) => handleQualityInput('grainsCount', e.target.value)}
                     style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '12px' }} />
                 </div>
 
@@ -1239,13 +1278,13 @@ const SampleEntryPage: React.FC = () => {
                       <div>
                         <label style={{ display: 'block', marginBottom: '3px', fontWeight: '500', color: '#555', fontSize: '11px' }}>WB (R)</label>
                         <input type="number" step="0.01" value={qualityData.wbR}
-                          onChange={(e) => setQualityData({ ...qualityData, wbR: e.target.value })}
+                          onChange={(e) => handleQualityInput('wbR', e.target.value)}
                           style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '12px' }} />
                       </div>
                       <div>
                         <label style={{ display: 'block', marginBottom: '3px', fontWeight: '500', color: '#555', fontSize: '11px' }}>WB (BK)</label>
                         <input type="number" step="0.01" value={qualityData.wbBk}
-                          onChange={(e) => setQualityData({ ...qualityData, wbBk: e.target.value })}
+                          onChange={(e) => handleQualityInput('wbBk', e.target.value)}
                           style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '12px' }} />
                       </div>
                     </div>
@@ -1272,7 +1311,7 @@ const SampleEntryPage: React.FC = () => {
                   </div>
                   {paddyWbEnabled && (
                     <input type="number" step="0.01" value={qualityData.paddyWb}
-                      onChange={(e) => setQualityData({ ...qualityData, paddyWb: e.target.value })}
+                      onChange={(e) => handleQualityInput('paddyWb', e.target.value)}
                       style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '12px' }} />
                   )}
                 </div>

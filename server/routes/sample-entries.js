@@ -92,12 +92,15 @@ router.get('/by-role', authenticateToken, async (req, res) => {
   }
 });
 
+const { buildCursorQuery, formatCursorResponse } = require('../utils/cursorPagination');
+const { cacheMiddleware, invalidateCache } = require('../middleware/cache');
+
 // ─── TAB ROUTES (MUST be before /:id to avoid route shadowing) ───
 
 // ─── Loading Lots (passed lots in processing) ───
-router.get('/tabs/loading-lots', authenticateToken, async (req, res) => {
+router.get('/tabs/loading-lots', authenticateToken, cacheMiddleware(30), async (req, res) => {
   try {
-    const { page = 1, pageSize = 50, broker, variety, party, location, startDate, endDate } = req.query;
+    const { page = 1, pageSize = 50, cursor, broker, variety, party, location, startDate, endDate } = req.query;
 
     const where = {
       workflowStatus: 'LOT_ALLOTMENT'
@@ -108,20 +111,39 @@ router.get('/tabs/loading-lots', authenticateToken, async (req, res) => {
     if (location) where.location = { [Op.iLike]: `%${location}%` };
     if (startDate && endDate) where.entryDate = { [Op.between]: [startDate, endDate] };
 
-    const { count, rows } = await SampleEntry.findAndCountAll({
-      where,
-      attributes: ['id', 'entryDate', 'brokerName', 'variety', 'partyName', 'location', 'bags', 'packaging', 'workflowStatus', 'createdAt'],
-      include: [
-        { model: SampleEntryOffering, as: 'offering' },
-        { model: User, as: 'creator', attributes: ['id', 'username'] }
-      ],
-      order: [['entryDate', 'DESC'], ['createdAt', 'DESC']],
-      limit: parseInt(pageSize),
-      offset: (parseInt(page) - 1) * parseInt(pageSize),
-      subQuery: false
-    });
+    // Use cursor pagination if cursor provided, else fallback to offset
+    const paginationQuery = buildCursorQuery(req.query, 'DESC');
+    const mergedWhere = { ...where, ...paginationQuery.where };
 
-    res.json({ entries: rows, total: count, page: parseInt(page), pageSize: parseInt(pageSize) });
+    if (paginationQuery.isCursor) {
+      const rows = await SampleEntry.findAll({
+        where: mergedWhere,
+        attributes: ['id', 'entryDate', 'brokerName', 'variety', 'partyName', 'location', 'bags', 'packaging', 'workflowStatus', 'createdAt'],
+        include: [
+          { model: SampleEntryOffering, as: 'offering' },
+          { model: User, as: 'creator', attributes: ['id', 'username'] }
+        ],
+        order: paginationQuery.order,
+        limit: paginationQuery.limit,
+        subQuery: false
+      });
+      const response = formatCursorResponse(rows, paginationQuery.limit);
+      res.json({ entries: response.data, pagination: response.pagination });
+    } else {
+      const { count, rows } = await SampleEntry.findAndCountAll({
+        where: mergedWhere,
+        attributes: ['id', 'entryDate', 'brokerName', 'variety', 'partyName', 'location', 'bags', 'packaging', 'workflowStatus', 'createdAt'],
+        include: [
+          { model: SampleEntryOffering, as: 'offering' },
+          { model: User, as: 'creator', attributes: ['id', 'username'] }
+        ],
+        order: [['entryDate', 'DESC'], ['createdAt', 'DESC']],
+        limit: paginationQuery.limit,
+        offset: paginationQuery.offset,
+        subQuery: false
+      });
+      res.json({ entries: rows, total: count, page: parseInt(page), pageSize: parseInt(pageSize) });
+    }
   } catch (error) {
     console.error('Error getting loading lots:', error.message);
     console.error('Full error:', error);
@@ -130,9 +152,8 @@ router.get('/tabs/loading-lots', authenticateToken, async (req, res) => {
 });
 
 // ─── Completed Lots (patti not yet added) ───
-router.get('/tabs/completed-lots', authenticateToken, async (req, res) => {
+router.get('/tabs/completed-lots', authenticateToken, cacheMiddleware(30), async (req, res) => {
   try {
-
     const { page = 1, pageSize = 50, broker, variety, party, location, startDate, endDate } = req.query;
 
     const where = { workflowStatus: 'COMPLETED' };
@@ -142,19 +163,36 @@ router.get('/tabs/completed-lots', authenticateToken, async (req, res) => {
     if (location) where.location = { [Op.iLike]: `%${location}%` };
     if (startDate && endDate) where.entryDate = { [Op.between]: [startDate, endDate] };
 
-    const { count, rows } = await SampleEntry.findAndCountAll({
-      where,
-      include: [
-        { model: QualityParameters, as: 'qualityParameters' },
-        { model: SampleEntryOffering, as: 'offering' },
-        { model: User, as: 'creator', attributes: ['id', 'username'] }
-      ],
-      order: [['entryDate', 'DESC'], ['createdAt', 'DESC']],
-      limit: parseInt(pageSize),
-      offset: (parseInt(page) - 1) * parseInt(pageSize)
-    });
+    const paginationQuery = buildCursorQuery(req.query, 'DESC');
+    const mergedWhere = { ...where, ...paginationQuery.where };
 
-    res.json({ entries: rows, total: count, page: parseInt(page), pageSize: parseInt(pageSize) });
+    if (paginationQuery.isCursor) {
+      const rows = await SampleEntry.findAll({
+        where: mergedWhere,
+        include: [
+          { model: QualityParameters, as: 'qualityParameters' },
+          { model: SampleEntryOffering, as: 'offering' },
+          { model: User, as: 'creator', attributes: ['id', 'username'] }
+        ],
+        order: paginationQuery.order,
+        limit: paginationQuery.limit
+      });
+      const response = formatCursorResponse(rows, paginationQuery.limit);
+      res.json({ entries: response.data, pagination: response.pagination });
+    } else {
+      const { count, rows } = await SampleEntry.findAndCountAll({
+        where: mergedWhere,
+        include: [
+          { model: QualityParameters, as: 'qualityParameters' },
+          { model: SampleEntryOffering, as: 'offering' },
+          { model: User, as: 'creator', attributes: ['id', 'username'] }
+        ],
+        order: [['entryDate', 'DESC'], ['createdAt', 'DESC']],
+        limit: paginationQuery.limit,
+        offset: paginationQuery.offset
+      });
+      res.json({ entries: rows, total: count, page: parseInt(page), pageSize: parseInt(pageSize) });
+    }
   } catch (error) {
     console.error('Error getting completed lots:', error);
     res.status(500).json({ error: error.message });
@@ -162,9 +200,8 @@ router.get('/tabs/completed-lots', authenticateToken, async (req, res) => {
 });
 
 // ─── Sample Book (all entries from lot selection onwards) ───
-router.get('/tabs/sample-book', authenticateToken, async (req, res) => {
+router.get('/tabs/sample-book', authenticateToken, cacheMiddleware(30), async (req, res) => {
   try {
-
     const { page = 1, pageSize = 50, broker, variety, party, location, startDate, endDate } = req.query;
 
     const where = {};
@@ -174,20 +211,38 @@ router.get('/tabs/sample-book', authenticateToken, async (req, res) => {
     if (location) where.location = { [Op.iLike]: `%${location}%` };
     if (startDate && endDate) where.entryDate = { [Op.between]: [startDate, endDate] };
 
-    const { count, rows } = await SampleEntry.findAndCountAll({
-      where,
-      include: [
-        { model: QualityParameters, as: 'qualityParameters' },
-        { model: CookingReport, as: 'cookingReport' },
-        { model: SampleEntryOffering, as: 'offering' },
-        { model: User, as: 'creator', attributes: ['id', 'username'] }
-      ],
-      order: [['entryDate', 'DESC'], ['createdAt', 'DESC']],
-      limit: parseInt(pageSize),
-      offset: (parseInt(page) - 1) * parseInt(pageSize)
-    });
+    const paginationQuery = buildCursorQuery(req.query, 'DESC');
+    const mergedWhere = { ...where, ...paginationQuery.where };
 
-    res.json({ entries: rows, total: count, page: parseInt(page), pageSize: parseInt(pageSize) });
+    if (paginationQuery.isCursor) {
+      const rows = await SampleEntry.findAll({
+        where: mergedWhere,
+        include: [
+          { model: QualityParameters, as: 'qualityParameters' },
+          { model: CookingReport, as: 'cookingReport' },
+          { model: SampleEntryOffering, as: 'offering' },
+          { model: User, as: 'creator', attributes: ['id', 'username'] }
+        ],
+        order: paginationQuery.order,
+        limit: paginationQuery.limit
+      });
+      const response = formatCursorResponse(rows, paginationQuery.limit);
+      res.json({ entries: response.data, pagination: response.pagination });
+    } else {
+      const { count, rows } = await SampleEntry.findAndCountAll({
+        where: mergedWhere,
+        include: [
+          { model: QualityParameters, as: 'qualityParameters' },
+          { model: CookingReport, as: 'cookingReport' },
+          { model: SampleEntryOffering, as: 'offering' },
+          { model: User, as: 'creator', attributes: ['id', 'username'] }
+        ],
+        order: [['entryDate', 'DESC'], ['createdAt', 'DESC']],
+        limit: paginationQuery.limit,
+        offset: paginationQuery.offset
+      });
+      res.json({ entries: rows, total: count, page: parseInt(page), pageSize: parseInt(pageSize) });
+    }
   } catch (error) {
     console.error('Error getting sample book:', error);
     res.status(500).json({ error: error.message });
@@ -736,7 +791,9 @@ router.post('/:id/physical-inspection', authenticateToken, async (req, res) => {
           actualBags: Number.parseInt(req.body.actualBags),
           cutting1: Number.parseFloat(req.body.cutting1),
           cutting2: Number.parseFloat(req.body.cutting2),
-          bend: Number.parseFloat(req.body.bend),
+          bend: req.body.bend1 ? Number.parseFloat(req.body.bend1) : Number.parseFloat(req.body.bend),
+          bend1: req.body.bend1 ? Number.parseFloat(req.body.bend1) : Number.parseFloat(req.body.bend),
+          bend2: req.body.bend2 ? Number.parseFloat(req.body.bend2) : 0,
           remarks: req.body.remarks || null
         };
 

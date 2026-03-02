@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import { API_URL } from '../config/api';
 
 interface EGBEntry {
     id: string;
@@ -49,9 +49,10 @@ const EGBLedger: React.FC = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = res.data as { entries: EGBEntry[]; total: number };
-            // Filter entries that have offering data with EGB info
+            // Filter entries: only show PURCHASE type EGB (not mill)
             const egbEntries = (data.entries || []).filter(e =>
-                e.offering && e.offering.isFinalized
+                e.offering && e.offering.isFinalized &&
+                (e.offering.egbType === 'purchase' || (!e.offering.egbType && e.offering.egbValue && e.offering.egbValue > 0))
             );
             setEntries(egbEntries);
             setTotal(egbEntries.length);

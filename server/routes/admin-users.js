@@ -12,10 +12,19 @@ const router = express.Router();
  */
 router.get('/users', auth, authorize('admin'), async (req, res) => {
     try {
-        const users = await User.findAll({
-            attributes: ['id', 'username', 'role', 'isActive', 'createdAt', 'updatedAt'],
-            order: [['role', 'ASC'], ['username', 'ASC']]
-        });
+        let users;
+        try {
+            users = await User.findAll({
+                attributes: ['id', 'username', 'role', 'isActive', 'staffType', 'createdAt', 'updatedAt'],
+                order: [['role', 'ASC'], ['username', 'ASC']]
+            });
+        } catch (attrError) {
+            // Fallback if staffType column doesn't exist yet
+            users = await User.findAll({
+                attributes: ['id', 'username', 'role', 'isActive', 'createdAt', 'updatedAt'],
+                order: [['role', 'ASC'], ['username', 'ASC']]
+            });
+        }
 
         res.json({
             success: true,
@@ -24,6 +33,7 @@ router.get('/users', auth, authorize('admin'), async (req, res) => {
                 username: user.username,
                 role: user.role,
                 isActive: user.isActive,
+                staffType: user.staffType || null,
                 createdAt: user.createdAt,
                 updatedAt: user.updatedAt
             }))
@@ -41,9 +51,9 @@ router.get('/users', auth, authorize('admin'), async (req, res) => {
 router.get('/physical-supervisors', auth, authorize('admin', 'manager'), async (req, res) => {
     try {
         const supervisors = await User.findAll({
-            where: { 
+            where: {
                 role: 'physical_supervisor',
-                isActive: true 
+                isActive: true
             },
             attributes: ['id', 'username'],
             order: [['username', 'ASC']]
@@ -69,7 +79,7 @@ router.get('/physical-supervisors', auth, authorize('admin', 'manager'), async (
  */
 router.post('/users', auth, authorize('admin'), async (req, res) => {
     try {
-        const { username, password, role } = req.body;
+        const { username, password, role, staffType } = req.body;
 
         // Validation
         if (!username || !password || !role) {
@@ -107,7 +117,8 @@ router.post('/users', auth, authorize('admin'), async (req, res) => {
             username: username.toLowerCase(),
             password: hashedPassword,
             role: role,
-            isActive: true
+            isActive: true,
+            staffType: role === 'staff' ? (staffType || 'mill') : null
         });
 
         console.log(`✅ Admin ${req.user.username} created new user: ${newUser.username} (${role})`);

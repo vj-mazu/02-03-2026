@@ -3,7 +3,7 @@ import axios from 'axios';
 
 import { useNotification } from '../contexts/NotificationContext';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import { API_URL } from '../config/api';
 
 interface SampleEntry {
   id: string;
@@ -353,7 +353,7 @@ const LotSelection: React.FC = () => {
             }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>
-                  {detailEntry.partyName} — Complete Details
+                  Complete Entry Details
                 </h3>
                 <p style={{ margin: '4px 0 0', fontSize: '11px', opacity: 0.8 }}>
                   {detailEntry.brokerName} | {new Date(detailEntry.entryDate).toLocaleDateString('en-GB')}
@@ -383,7 +383,7 @@ const LotSelection: React.FC = () => {
               </div>
 
               {/* Quality Parameters Section */}
-              <h4 style={{ margin: '0 0 10px', fontSize: '13px', color: '#e67e22', borderBottom: '2px solid #e67e22', paddingBottom: '6px' }}>🔬 Quality Parameters</h4>
+              <h4 style={{ margin: '0 0 10px', fontSize: '13px', color: '#e67e22', borderBottom: '2px solid #e67e22', paddingBottom: '6px' }}>🔬 Quality Parameters {detailEntry.qualityParameters?.reportedBy && <span style={{ fontSize: '11px', color: '#666', fontWeight: '400' }}> — Reported by: {detailEntry.qualityParameters.reportedBy}</span>}</h4>
               {(() => {
                 const qp = detailEntry.qualityParameters;
                 const fmt = (v: any) => {
@@ -421,10 +421,9 @@ const LotSelection: React.FC = () => {
                       <QItem label="WB (BK)" value={fmt(qp.wbBk)} />
                       <QItem label="WB (T)" value={fmt(qp.wbT)} />
                     </div>
-                    {/* Row 4: Paddy WB, Reported By */}
+                    {/* Row 4: Paddy WB */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
                       <QItem label="Paddy WB" value={fmt(qp.paddyWb)} />
-                      <QItem label="Reported By" value={qp.reportedBy || '-'} />
                     </div>
                   </div>
                 ) : <div style={{ color: '#999', textAlign: 'center', padding: '12px' }}>No quality data available</div>;
