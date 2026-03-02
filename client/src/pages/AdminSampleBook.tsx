@@ -287,7 +287,7 @@ const AdminSampleBook: React.FC = () => {
             {/* Detail Modal */}
             {showDetailModal && selectedEntry && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }} onClick={() => { setShowDetailModal(false); setSelectedEntry(null); }}>
-                    <div style={{ backgroundColor: 'white', borderRadius: '8px', width: '95%', maxWidth: detailMode === 'full' ? '900px' : '500px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+                    <div style={{ backgroundColor: 'white', borderRadius: '8px', width: '95%', maxWidth: detailMode === 'full' ? '900px' : '500px', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', marginTop: '30px' }} onClick={e => e.stopPropagation()}>
                         {/* Header — matches LotSelection style for quick, purple for full */}
                         <div style={{
                             background: detailMode === 'quick'
