@@ -407,11 +407,15 @@ const LotSelection: React.FC = () => {
                       <QItem label="Bend" value={fmt(qp.bend)} />
                       <QItem label="Grains Count" value={fmt(qp.grainsCount)} />
                     </div>
-                    {/* Row 2: S Mix, L Mix, Kandu, Oil */}
+                    {/* Row 2: Mix, S Mix, L Mix, Kandu */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '8px' }}>
-                      <QItem label="S Mix" value={fmt(qp.mixS || qp.mix)} />
+                      <QItem label="Mix" value={fmt(qp.mix)} />
+                      <QItem label="S Mix" value={fmt(qp.mixS)} />
                       <QItem label="L Mix" value={fmt(qp.mixL)} />
                       <QItem label="Kandu" value={fmt(qp.kandu)} />
+                    </div>
+                    {/* Row 3: Oil */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '8px' }}>
                       <QItem label="Oil" value={fmt(qp.oil)} />
                     </div>
                     {/* Row 3: SK, WB(R), WB(BK), WB(T) */}
